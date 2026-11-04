@@ -16,6 +16,19 @@ public class pawn extends Piece {
         }
 
         boolean isStartingPosition = (color == PieceColor.WHITE && position.getRow() == 6) ||
-            (color == PieceColor.BLACK && position.getRow() == 1)
+            (color == PieceColor.BLACK && position.getRow() == 1); //check if starting square based on color
+        if (colDiff == 0 && rowDiff == 2 && isStartingPosition 
+            && board[newPosition.getRow()][newPosition.getColumn()] == null) { //check empty space
+                int middleRow = position.getRow() + forwardDirection;
+                if (board[middleRow][position.getColumn()] == null) { //check space in front
+                    return true; //allow move 2 spaces
+                }
+        }
+
+        if (Math.abs(colDiff) == 1 && rowDiff == 1 && board[newPosition.getRow()][newPosition.getColumn()] != null && //check capture
+            board[newPosition.getRow()][newPosition.getColumn].color != this.color) {
+                return true;
+        }
+        return false;
     }
 }
