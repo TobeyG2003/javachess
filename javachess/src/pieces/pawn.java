@@ -24,11 +24,12 @@ public class pawn extends Piece {
                     return true; //allow move 2 spaces
                 }
         }
-
+        
         if (Math.abs(colDiff) == 1 && rowDiff == 1 && board[newPosition.getRow()][newPosition.getColumn()] != null && //check capture
             board[newPosition.getRow()][newPosition.getColumn].color != this.color) {
                 return true;
         }
+
         return false;
     }
 }
