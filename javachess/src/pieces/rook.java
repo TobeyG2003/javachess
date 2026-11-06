@@ -1,16 +1,14 @@
 package pieces;
 
-import javax.swing.text.Position;
-
 public class rook extends Piece {
     
-    public Rook(PieceColor color, Position position) {
+    public rook(piececolor color, position position) {
         super(color, position);
     }
 
 
     @Override 
-    public boolean isValidMove(Position newPosition, Piece[][] board) {
+    public boolean isValidMove(position newPosition, Piece[][] board) {
         if (position.getRow() == newPosition.getRow())  { //horizontal 
             int columnStart = Math.min(position.getColumn(), newPosition.getColumn()) + 1;
             int columnEnd = Math.max(position.getColumn(), newPosition.getColumn());
