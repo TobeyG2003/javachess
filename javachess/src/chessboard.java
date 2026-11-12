@@ -4,9 +4,9 @@ import pieces.*;
 public class chessboard {
     private Piece[][] board;
 
-    public Chessboard() {
+    public chessboard() {
         this.board = new Piece[8][8];
-        setupPieces();
+        setUpPieces();
     }
 
     private void setUpPieces() {
