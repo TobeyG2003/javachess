@@ -1,14 +1,9 @@
-import javax.swing.text.Position;
 
 import pieces.*;
 
 public class chessgame {
     private chessboard board;
     private boolean whiteTurn = true;
-
-    public chessgame() {
-        this.board = new chessboard();
-    }
 
     public boolean makeMove(position start, position end) {
         Piece movingPiece = board.getPiece(start.getRow(), start.getColumn());
@@ -28,7 +23,7 @@ public class chessgame {
         position kingPosition = findKingPosition(color);
         for (int row = 0; row < board.getBoard().length; row++) { //check every space on board
             for (int column = 0;  column < board.getBoard()[row].length; column++)  {
-                Piece piece = board.getPiece(row, column)
+                Piece piece = board.getPiece(row, column);
                 if (piece != null && piece.getColor() != color) { //if piece is opposite color and can move on king
                     if (piece.isValidMove(kingPosition, board.getBoard())) {
                         return true; //piece is has king in check
@@ -62,6 +57,19 @@ public class chessgame {
         return true; //no escape
     }
 
+    private boolean wouldBeCheck(piececolor color, position currentPos, position newPosition) {
+        Piece temp = board.getPiece(newPosition.getRow(), newPosition.getColumn());
+        board.setPiece(newPosition.getRow(), newPosition.getColumn(), board.getPiece(currentPos.getRow(), currentPos.getColumn()));
+        board.setPiece(currentPos.getRow(), currentPos.getColumn(), null);
+
+        boolean inCheck = isCheck(color);
+
+        board.setPiece(currentPos.getRow(), currentPos.getColumn(), board.getPiece(newPosition.getRow(), newPosition.getColumn()));
+        board.setPiece(newPosition.getRow(), newPosition.getColumn(), temp);
+
+        return inCheck;
+    }
+
     private boolean isPositionOnBoard(position position) {
       return position.getRow() >= 0 && position.getRow() < board.getBoard().length &&
               position.getColumn() >= 0 && position.getColumn() < board.getBoard()[0].length;
@@ -69,7 +77,7 @@ public class chessgame {
     }
 
     private position findKingPosition(piececolor color) {
-        for (int row = 0; row < board.getBoard().length; row++) {
+        for (int row = 0; row < board.getBoard().length; row++) { //check every space on the board to find king  
           for (int col = 0; col < board.getBoard()[row].length; col++) {
               Piece piece = board.getPiece(row, col);
               if (piece instanceof king && piece.getColor() == color) {
@@ -77,5 +85,6 @@ public class chessgame {
               }
           }
       }
+      throw new RuntimeException("Error: King not found");
     }
 }
