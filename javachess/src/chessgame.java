@@ -23,4 +23,19 @@ public class chessgame {
         }
         return false;
     }
+
+    public boolean inCheck(piececolor color) {
+        position kingPosition = findKingPosition(color);
+        for (int row = 0; row < board.getBoard().length; row++) { //check every space on board
+            for (int column = 0;  column < board.getBoard()[row].length; column++)  {
+                Piece piece = board.getPiece(row, column)
+                if (piece != null && piece.getColor() != color) { //if piece is opposite color and can move on king
+                    if (piece.isValidMove(kingPosition, board.getBoard())) {
+                        return true; //piece is has king in check
+                    }
+                }
+            }
+        }
+        return false; 
+    }
 }
