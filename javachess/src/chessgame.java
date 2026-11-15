@@ -87,4 +87,17 @@ public class chessgame {
       }
       throw new RuntimeException("Error: King not found");
     }
+
+    public chessboard getBoard() {
+        return this.board;
+    }
+
+    public void resetGame() {
+        this.board = new chessboard();
+        this.whiteTurn = true;
+    }
+
+    public piececolor getCurrentPlayerColor() {
+        return whiteTurn ? piececolor.WHITE : piececolor.BLACK;
+    }
 }
