@@ -29,6 +29,7 @@ public class chessgamegui extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridLayout(8,8));
         initializeBoard();
+        addGameResetOption();
         pack();
         setVisible(true);
     }
@@ -102,6 +103,32 @@ public class chessgamegui extends JFrame {
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
                 squares[row][col].setBackground((row + col) % 2 == 0 ? Color.LIGHT_GRAY : new Color(205, 133, 63));
+            }
+        }
+    }
+
+    private void addGameResetOption() {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu gameMenu = new JMenu("Game");
+        JMenuItem resetItem  = new JMenuItem("Reset");
+        resetItem.addActionListener(e -> resetGame());
+        gameMenu.add(resetItem);
+        menuBar.add(gameMenu);
+        setJMenuBar(menuBar);
+    }
+
+    private void resetGame() {
+        game.resetGame();
+        refreshBoard();
+    }
+
+    private void checkGameOver() {
+        if (game.isCheckmate(game.getCurrentPlayerColor())) {
+            int response = JOptionPane.showConfirmDialog(this, "Checkmate!", "Game OVer", JOptionPane.YES_NO_CANCEL_OPTION);
+            if (response == JOptionPane.YES_OPTION) {
+                resetGame();
+            } else {
+                System.exit(0);
             }
         }
     }
