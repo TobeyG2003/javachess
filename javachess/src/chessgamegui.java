@@ -1,9 +1,12 @@
 import javax.swing.*;
+import javax.swing.text.Position;
+
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 import pieces.*;
 
 public class chessgamegui extends JFrame {
@@ -21,7 +24,7 @@ public class chessgamegui extends JFrame {
         }
     };
 
-    public chessgameui() {
+    public chessgamegui() {
         setTitle("Chess");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridLayout(8,8));
@@ -67,10 +70,16 @@ public class chessgamegui extends JFrame {
     }
 
     private void handleSquareClick(int row, int col) {
-        if(game.handleSquareSelection(row, col)) {
+        boolean moveResult = game.handleSquareSelection(row, col);
+        clearHighlights();
+        if (moveResult) { //if move went through
             refreshBoard();
             checkGameState();
+            checkGameOver();
+        } else if (game.isPieceSelected()) {
+            highlightLegalMoves(new position(row, col));
         }
+        refreshBoard();
     }
 
     private void checkGameState() {
@@ -79,6 +88,21 @@ public class chessgamegui extends JFrame {
 
         if (inCheck) {
             JOptionPane.showMessageDialog(this, currentPlayer + "is in check");
+        }
+    }
+
+    private void highlightLegalMoves(position position) {
+        List<position> legalMoves = game.getLegalMovesForPieceAt(position);
+        for (position move : legalMoves) {
+            squares[move.getRow()][move.getColumn()].setBackground(Color.GREEN);
+        }
+    }
+
+    private void clearHighlights() {
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                squares[row][col].setBackground((row + col) % 2 == 0 ? Color.LIGHT_GRAY : new Color(205, 133, 63));
+            }
         }
     }
 

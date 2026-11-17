@@ -4,6 +4,7 @@ import pieces.*;
 public class chessgame {
     private chessboard board;
     private boolean whiteTurn = true;
+    private position selectedPosition;
 
     public boolean makeMove(position start, position end) {
         Piece movingPiece = board.getPiece(start.getRow(), start.getColumn());
@@ -99,5 +100,24 @@ public class chessgame {
 
     public piececolor getCurrentPlayerColor() {
         return whiteTurn ? piececolor.WHITE : piececolor.BLACK;
+    }
+
+    public boolean isPieceSelected() {
+        return selectedPosition != null;
+    }
+
+    public boolean handleSquareSelection(int row, int col) {
+        if (selectedPosition == null) {
+            Piece selectedPiece = board.getPiece(row, col);
+            if (selectedPiece != null && selectedPiece.getColor() == (whiteTurn ? piececolor.WHITE  : piececolor.BLACK)) { //if your own piece was selected
+                selectedPosition = new position(row, col);
+                return false; //for marking selection but no action
+            }
+        } else { //selected not null -> piece has already been selected and now is taking action
+            boolean moveMade = makeMove(selectedPosition, new position(row, col)); //try to move, return if it was valid
+            selectedPosition = null; //reset selection
+            return moveMade;
+        }
+        return false; //no piece, or no move made
     }
 }
