@@ -1,6 +1,4 @@
 import javax.swing.*;
-import javax.swing.text.Position;
-
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -102,7 +100,7 @@ public class chessgamegui extends JFrame {
     private void clearHighlights() {
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
-                squares[row][col].setBackground((row + col) % 2 == 0 ? Color.LIGHT_GRAY : new Color(205, 133, 63));
+                squares[row][col].setBackground((row + col) % 2 == 0 ? new Color(227,217,207) : new Color(45,60,115));
             }
         }
     }

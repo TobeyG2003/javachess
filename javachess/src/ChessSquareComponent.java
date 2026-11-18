@@ -23,7 +23,7 @@ public class ChessSquareComponent extends JButton {
         setHorizontalAlignment(SwingConstants.CENTER);
         setVerticalAlignment(SwingConstants.CENTER);
 
-        setFont(new Font("Serif", Font.BOLD, 36));
+        setFont(new Font("Segoe UI Symbol", Font.PLAIN, 42));
     }
 
     public void setPieceSymbol(String symbol, Color color) {

@@ -1,10 +1,16 @@
 
 import pieces.*;
+import java.util.List;
+import java.util.ArrayList;
 
 public class chessgame {
     private chessboard board;
     private boolean whiteTurn = true;
     private position selectedPosition;
+
+    public chessgame() {
+        this.board = new chessboard();
+    }
 
     public boolean makeMove(position start, position end) {
         Piece movingPiece = board.getPiece(start.getRow(), start.getColumn());
@@ -120,4 +126,87 @@ public class chessgame {
         }
         return false; //no piece, or no move made
     }
+
+    public List<position> getLegalMovesForPieceAt(position position) {
+        Piece selectedPiece = board.getPiece(position.getRow(), position.getColumn());
+        if (selectedPiece == null) return new ArrayList<>();
+
+        List<position> legalMoves = new ArrayList<>();
+        switch (selectedPiece.getClass().getSimpleName()) {
+            case "pawn":
+                addPawnMoves(position, selectedPiece.getColor(), legalMoves);
+                break;
+            case "rook":
+                addLineMoves(position, new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}, legalMoves);
+                break;
+            case "knight":
+                addSingleMoves(position, new int[][]{{2, 1}, {2, -1}, {-2, 1}, {-2, -1}, {1, 2}, {-1, 2}, {1, -2}, {-1, -2}}, legalMoves);
+                break;
+            case "bishop":
+                addLineMoves(position, new int[][]{{1, 1}, {-1, -1}, {1, -1}, {-1, 1}}, legalMoves);
+                break;
+            case "queen":
+                addLineMoves(position, new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}, legalMoves);
+                break;
+            case "king":
+                addSingleMoves(position, new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}, legalMoves);
+                break;
+        }
+      return legalMoves;
+    }
+
+    private void addLineMoves(position position, int[][] directions, List<position> legalMoves) {
+        for (int[] d : directions) {
+            position newPos = new position(position.getRow() + d[0], position.getColumn() + d[1]);
+            while (isPositionOnBoard(newPos)) {
+                if (board.getPiece(newPos.getRow(), newPos.getColumn()) == null) { //no piece
+                    legalMoves.add(new position(newPos.getRow(), newPos.getColumn()));
+                    newPos = new position(newPos.getRow() + d[0], newPos.getColumn() + d[1]);
+                } else {
+                    if (board.getPiece(newPos.getRow(), newPos.getColumn()).getColor() != board.getPiece(position.getRow(), position.getColumn()).getColor()) { //opposing piece
+                        legalMoves.add(newPos);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private void addSingleMoves(position position, int[][] moves, List<position> legalMoves) {
+        for (int[] move : moves) {
+            position newPos = new position(position.getRow() + move[0], position.getColumn() + move[1]);
+            if (isPositionOnBoard(newPos) && (board.getPiece(newPos.getRow(), newPos.getColumn()) == null || board.getPiece(newPos.getRow(), newPos.getColumn()).getColor()
+             != board.getPiece(position.getRow(), position.getColumn()).getColor())) { //if valid space and no/enemy piece
+                legalMoves.add(newPos);    
+            }
+        }
+
+    }
+
+    private void addPawnMoves(position position, piececolor color, List<position> legalMoves) {
+        int direction = color == piececolor.WHITE ? -1 : 1;
+        position newPos = new position(position.getRow() + direction, position.getColumn());
+        if (isPositionOnBoard(newPos) && board.getPiece(newPos.getRow(), newPos.getColumn()) == null) { //normal single move
+            legalMoves.add(newPos);
+        }
+
+        if ((color ==piececolor.WHITE && position.getRow() == 6) || (color == piececolor.BLACK && position.getRow() == 1)) { //check if on starting color's respective square 
+            newPos = new position(position.getRow() + 2 * direction, position.getColumn());
+            position intermediatePos = new position(position.getRow() + direction, position.getColumn());
+            if (isPositionOnBoard(newPos) && board.getPiece(newPos.getRow(), newPos.getColumn()) == null
+             && board.getPiece(intermediatePos.getRow(), intermediatePos.getColumn()) == null) { //check if both squares in front are empty
+                legalMoves.add(newPos);
+            }
+        }
+        int[] captureCols = {position.getColumn() - 1, position.getColumn() + 1}; //left and right column
+        for (int col : captureCols) { //each column
+            newPos = new position(position.getRow() + direction, col); //diagonal
+            if (isPositionOnBoard(newPos) && board.getPiece(newPos.getRow(), newPos.getColumn()) != null 
+             && board.getPiece(newPos.getRow(), newPos.getColumn()).getColor() != color) { //if enemy piece
+                legalMoves.add(newPos);
+             }
+        }
+
+    }
+
 }
