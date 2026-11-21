@@ -18,7 +18,8 @@ public class chessgame {
             return false; //no piece on position or not your turn
         }
 
-        if (movingPiece.isValidMove(end, board.getBoard())) {
+        if (movingPiece.isValidMove(end, board.getBoard()) &&
+         !wouldBeCheck(movingPiece.getColor(), start, end)) {
             board.movePiece(start, end);
             whiteTurn =  !whiteTurn; //switch turn
             return true;
@@ -160,11 +161,15 @@ public class chessgame {
             position newPos = new position(position.getRow() + d[0], position.getColumn() + d[1]);
             while (isPositionOnBoard(newPos)) {
                 if (board.getPiece(newPos.getRow(), newPos.getColumn()) == null) { //no piece
-                    legalMoves.add(new position(newPos.getRow(), newPos.getColumn()));
+                    if (!wouldBeCheck((board.getPiece(position.getRow(), position.getColumn()).getColor()), position, newPos)) {
+                        legalMoves.add(new position(newPos.getRow(), newPos.getColumn()));
+                    }
                     newPos = new position(newPos.getRow() + d[0], newPos.getColumn() + d[1]);
                 } else {
                     if (board.getPiece(newPos.getRow(), newPos.getColumn()).getColor() != board.getPiece(position.getRow(), position.getColumn()).getColor()) { //opposing piece
-                        legalMoves.add(newPos);
+                        if (!wouldBeCheck((board.getPiece(position.getRow(), position.getColumn()).getColor()), position, newPos)) {
+                            legalMoves.add(newPos);
+                        }
                     }
                     break;
                 }
@@ -177,7 +182,9 @@ public class chessgame {
             position newPos = new position(position.getRow() + move[0], position.getColumn() + move[1]);
             if (isPositionOnBoard(newPos) && (board.getPiece(newPos.getRow(), newPos.getColumn()) == null || board.getPiece(newPos.getRow(), newPos.getColumn()).getColor()
              != board.getPiece(position.getRow(), position.getColumn()).getColor())) { //if valid space and no/enemy piece
-                legalMoves.add(newPos);    
+                if (!wouldBeCheck((board.getPiece(position.getRow(), position.getColumn()).getColor()), position, newPos)) {
+                    legalMoves.add(newPos);
+                }   
             }
         }
 
@@ -187,7 +194,9 @@ public class chessgame {
         int direction = color == piececolor.WHITE ? -1 : 1;
         position newPos = new position(position.getRow() + direction, position.getColumn());
         if (isPositionOnBoard(newPos) && board.getPiece(newPos.getRow(), newPos.getColumn()) == null) { //normal single move
-            legalMoves.add(newPos);
+            if (!wouldBeCheck((board.getPiece(position.getRow(), position.getColumn()).getColor()), position, newPos)) {
+                legalMoves.add(newPos);
+            }
         }
 
         if ((color ==piececolor.WHITE && position.getRow() == 6) || (color == piececolor.BLACK && position.getRow() == 1)) { //check if on starting color's respective square 
@@ -195,7 +204,9 @@ public class chessgame {
             position intermediatePos = new position(position.getRow() + direction, position.getColumn());
             if (isPositionOnBoard(newPos) && board.getPiece(newPos.getRow(), newPos.getColumn()) == null
              && board.getPiece(intermediatePos.getRow(), intermediatePos.getColumn()) == null) { //check if both squares in front are empty
-                legalMoves.add(newPos);
+                if (!wouldBeCheck((board.getPiece(position.getRow(), position.getColumn()).getColor()), position, newPos)) {
+                    legalMoves.add(newPos);
+                }
             }
         }
         int[] captureCols = {position.getColumn() - 1, position.getColumn() + 1}; //left and right column
@@ -203,7 +214,9 @@ public class chessgame {
             newPos = new position(position.getRow() + direction, col); //diagonal
             if (isPositionOnBoard(newPos) && board.getPiece(newPos.getRow(), newPos.getColumn()) != null 
              && board.getPiece(newPos.getRow(), newPos.getColumn()).getColor() != color) { //if enemy piece
-                legalMoves.add(newPos);
+                if (!wouldBeCheck((board.getPiece(position.getRow(), position.getColumn()).getColor()), position, newPos)) {
+                    legalMoves.add(newPos);
+                }
              }
         }
 
