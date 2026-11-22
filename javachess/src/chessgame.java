@@ -121,6 +121,12 @@ public class chessgame {
                 return false; //for marking selection but no action
             }
         } else { //selected not null -> piece has already been selected and now is taking action
+            Piece selectedPiece = board.getPiece(row,col);
+            if (selectedPiece != null && board.getPiece(selectedPosition.getRow(), selectedPosition.getColumn()) != selectedPiece 
+             && selectedPiece.getColor() == (whiteTurn ? piececolor.WHITE  : piececolor.BLACK)) { //if selecting one piece after another
+                selectedPosition = new position(row, col); //new mark, no action
+                return false;
+            }
             boolean moveMade = makeMove(selectedPosition, new position(row, col)); //try to move, return if it was valid
             selectedPosition = null; //reset selection
             return moveMade;
