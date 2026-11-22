@@ -29,6 +29,7 @@ public class chessgamegui extends JFrame {
         initializeBoard();
         addGameResetOption();
         pack();
+        setMinimumSize(new Dimension(512, 560));
         setVisible(true);
     }
 
