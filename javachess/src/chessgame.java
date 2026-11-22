@@ -62,6 +62,16 @@ public class chessgame {
             }
         }
 
+        for (int row = 0; row < board.getBoard().length; row++) { //check every space on board
+            for (int column = 0;  column < board.getBoard()[row].length; column++)  {
+                Piece piece = board.getPiece(row, column);
+                if (piece != null && piece.getColor() == color 
+                 && !getLegalMovesForPieceAt(piece.getPosition()).isEmpty()) { //if friendly piece has a legal move that stops check
+                    return false; //move exists to block check
+                }
+            }
+        }
+
         return true; //no escape
     }
 
