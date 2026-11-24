@@ -39,14 +39,12 @@ public class chessboard {
     }
 
     public void movePiece(position start, position end) {
-        if (board[start.getRow()][start.getColumn()] != null && 
-            board[start.getRow()][start.getColumn()].isValidMove(end, board)) { //check if piece start exists + valid
-
-            board[end.getRow()][end.getColumn()] = board[start.getRow()][start.getColumn()]; //place piece at end
-            board[end.getRow()][end.getColumn()].setPosition(end); //update position of piece
-            board[start.getRow()][start.getColumn()] = null; //remove piece at start
-        }
+    if (board[start.getRow()][start.getColumn()] != null) {
+        board[end.getRow()][end.getColumn()] = board[start.getRow()][start.getColumn()]; //place piece at end
+        board[end.getRow()][end.getColumn()].setPosition(end); //update position of piece
+        board[start.getRow()][start.getColumn()] = null; //remove piece at start
     }
+}
 
     public Piece[][] getBoard() {
         return board;

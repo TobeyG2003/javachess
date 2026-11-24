@@ -7,6 +7,7 @@ public class chessgame {
     private chessboard board;
     private boolean whiteTurn = true;
     private position selectedPosition;
+    private position enPassPosition = null;
 
     public chessgame() {
         this.board = new chessboard();
@@ -18,10 +19,28 @@ public class chessgame {
             return false; //no piece on position or not your turn
         }
 
-        if (movingPiece.isValidMove(end, board.getBoard()) &&
-         !wouldBeCheck(movingPiece.getColor(), start, end)) {
+        if (movingPiece.isValidMove(end, board.getBoard()) && !wouldBeCheck(movingPiece.getColor(), start, end)) { //check legality
+            if (enPassPosition != null) { //enpass opportunity exists
+                if (movingPiece instanceof pawn && //moving piece is a pawn
+                    (end.getRow() + (whiteTurn ? 1 : -1)) == enPassPosition.getRow() && //end row is above the enpass position
+                    end.getColumn() == enPassPosition.getColumn()) {  //same column though
+                    board.setPiece(enPassPosition.getRow(), enPassPosition.getColumn(), null); //remove/capture piece
+                }
+                if (board.getPiece(enPassPosition.getRow(), enPassPosition.getColumn()) instanceof pawn oldPawn) { //if the pawn didnt get captured this move
+                    oldPawn.setEnPassant(false); //disallow enpass
+                }
+            enPassPosition = null; //remove enpass flag
+            }
+
+            if (movingPiece instanceof pawn movedPawn && Math.abs(start.getRow() - end.getRow()) == 2) { //if a pawn moves into an enpass position
+                movedPawn.setEnPassant(true); //enable enpass on that pawn
+                enPassPosition = end; //mark the enpass position
+            } else if (movingPiece instanceof pawn movedPawn) { //pawn that didn't move into enpass
+                movedPawn.setEnPassant(false); //disable
+            }
+
             board.movePiece(start, end);
-            whiteTurn =  !whiteTurn; //switch turn
+            whiteTurn = !whiteTurn;
             return true;
         }
         return false;
@@ -113,6 +132,7 @@ public class chessgame {
     public void resetGame() {
         this.board = new chessboard();
         this.whiteTurn = true;
+        this.enPassPosition = null;
     }
 
     public piececolor getCurrentPlayerColor() {

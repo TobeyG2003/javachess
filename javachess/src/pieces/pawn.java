@@ -1,8 +1,12 @@
 package pieces;
 
 public class pawn extends Piece {
+
+    private boolean enPassant;
+
     public pawn(piececolor color, position position) {
         super(color, position);
+        this.enPassant = false;
     }
 
     @Override
@@ -22,15 +26,32 @@ public class pawn extends Piece {
             && board[newPosition.getRow()][newPosition.getColumn()] == null) { //check empty space
                 int middleRow = position.getRow() + forwardDirection;
                 if (board[middleRow][position.getColumn()] == null) { //check space in front
+                    //this.enPassant = true;
                     return true; //allow move 2 spaces
                 }
         }
         
-        if (Math.abs(colDiff) == 1 && rowDiff == 1 && board[newPosition.getRow()][newPosition.getColumn()] != null && //check capture
+        if (Math.abs(colDiff) == 1 && rowDiff == 1 && board[newPosition.getRow()][newPosition.getColumn()] != null && //check normal capture
             board[newPosition.getRow()][newPosition.getColumn()].color != this.color) {
                 return true;
         }
+        
+        if(Math.abs(colDiff) == 1 && rowDiff == 1 && board[newPosition.getRow()][newPosition.getColumn()] == null //check if empty capture diagonal
+         && board[newPosition.getRow() - rowDiff * forwardDirection ][newPosition.getColumn()] instanceof pawn enPassantablePawn  //has a pawn in front of it
+         && enPassantablePawn.color != this.color
+         && enPassantablePawn.isEnPassant()
+         && enPassantablePawn.getPosition().getRow() == (enPassantablePawn.getColor() == piececolor.BLACK ? 3 : 4)) { //is an enemy enpassantable piece
+            return true; //allow capture
+        }
 
         return false;
+    }
+
+    public boolean isEnPassant() {
+        return enPassant;
+    }
+
+    public void setEnPassant(boolean canBeCapturedEnPassant) {
+        this.enPassant = canBeCapturedEnPassant;
     }
 }
