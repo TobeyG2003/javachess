@@ -20,6 +20,32 @@ public class chessgame {
         }
 
         if (movingPiece.isValidMove(end, board.getBoard()) && !wouldBeCheck(movingPiece.getColor(), start, end)) { //check legality
+             //check for checks/threatened spaces for castling
+            if (movingPiece instanceof king movedKing && Math.abs(start.getColumn() - end.getColumn()) == 2) {
+                int row = start.getRow();
+                int step = (end.getColumn() - start.getColumn()) / 2; // +1 kingside, -1 queenside
+                position passThrough = new position(row, start.getColumn() + step);
+
+                //check if spaces are threatened
+                if (isCheck(getCurrentPlayerColor()) ||
+                    wouldBeCheck(movingPiece.getColor(), start, passThrough)) {
+                    return false;
+                }
+
+                //move the rook
+                if (step > 0) { // king rook moves col 7 -> 5
+                    if (board.getPiece(row, 7) instanceof rook movedRook) {
+                        movedRook.setMoved(true);
+                    }
+                    board.movePiece(new position(row, 7), new position(row, 5));
+                } else { // queen rook moves col 0 -> 3
+                    if (board.getPiece(row, 0) instanceof rook movedRook) {
+                        movedRook.setMoved(true);
+                    }
+                    board.movePiece(new position(row, 0), new position(row, 3));
+                }
+            }
+
             if (enPassPosition != null) { //enpass opportunity exists
                 if (movingPiece instanceof pawn && //moving piece is a pawn
                     (end.getRow() + (whiteTurn ? 1 : -1)) == enPassPosition.getRow() && //end row is above the enpass position
@@ -37,6 +63,12 @@ public class chessgame {
                 enPassPosition = end; //mark the enpass position
             } else if (movingPiece instanceof pawn movedPawn) { //pawn that didn't move into enpass
                 movedPawn.setEnPassant(false); //disable
+            }
+
+            if (movingPiece instanceof king movedKing) {
+                movedKing.setMoved(true);
+            } else if (movingPiece instanceof rook movedRook) {
+                movedRook.setMoved(true);
             }
 
             board.movePiece(start, end);

@@ -1,6 +1,8 @@
 package pieces;
 
 public class rook extends Piece {
+
+    private boolean hasMoved = false;
     
     public rook(piececolor color, position position) {
         super(color, position);
@@ -38,4 +40,13 @@ public class rook extends Piece {
         return false; // own piece
 
     }
+
+    public boolean checkMoved() {
+        return hasMoved;
+    }
+
+    public void setMoved(boolean moved) {
+        this.hasMoved = moved;
+    }
+    
 }
