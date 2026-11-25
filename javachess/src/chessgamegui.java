@@ -122,8 +122,24 @@ public class chessgamegui extends JFrame {
     }
 
     private void checkGameOver() {
-        if (game.isCheckmate(game.getCurrentPlayerColor())) {
-            int response = JOptionPane.showConfirmDialog(this, "Checkmate!", "Game OVer", JOptionPane.YES_NO_CANCEL_OPTION);
+        piececolor currentColor = game.getCurrentPlayerColor();
+        String message = null;
+
+        if (game.isCheckmate(currentColor)) {
+            String winner = (currentColor == piececolor.WHITE) ? "Black" : "White";
+            message = "Checkmate! " + winner + " wins! Play again?";
+        } else if (game.isStalemate(currentColor)) {
+            message = "Draw by Stalemate! Play again?";
+        } else if (game.isInsufficientMaterial()) {
+            message = "Draw by Insufficient Material! Play again?";
+        } else if (game.isFiftyMoveRule()) {
+            message = "Draw by 50-Move Rule! Play again?";
+        } else if (game.isThreefoldRepetition()) {
+            message = "Draw by Threefold Repetition! Play again?";
+        }
+
+        if (message != null) {
+            int response = JOptionPane.showConfirmDialog(this, message, "Game Over", JOptionPane.YES_NO_OPTION);
             if (response == JOptionPane.YES_OPTION) {
                 resetGame();
             } else {

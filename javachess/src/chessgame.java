@@ -1,13 +1,17 @@
 
 import pieces.*;
 import java.util.List;
+import java.util.Map;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class chessgame {
     private chessboard board;
     private boolean whiteTurn = true;
     private position selectedPosition;
     private position enPassPosition = null;
+    private int halfMoveClock = 0;
+    private Map<String, Integer> positionHistory = new HashMap<>();
 
     public chessgame() {
         this.board = new chessboard();
@@ -71,8 +75,17 @@ public class chessgame {
                 movedRook.setMoved(true);
             }
 
+            boolean isCapture = board.getPiece(end.getRow(), end.getColumn()) != null || (movingPiece instanceof pawn && start.getColumn() != end.getColumn());
+                if (movingPiece instanceof pawn || isCapture) {
+                    halfMoveClock = 0;
+                } else {
+                    halfMoveClock++;
+                }
+
             board.movePiece(start, end);
             whiteTurn = !whiteTurn;
+            String key = getPositionKey();
+            positionHistory.put(key, positionHistory.getOrDefault(key, 0) + 1);
             return true;
         }
         return false;
@@ -94,36 +107,100 @@ public class chessgame {
     }
 
     public boolean isCheckmate(piececolor color) {
-        if(!isCheck(color)) {
-            return false; //must be in check to checkmate
-        }
+        return isCheck(color) && !hasAnyLegalMoves(color);
+    }
 
-        position kingPosition = findKingPosition(color);
-        king king = (king) board.getPiece(kingPosition.getRow(), kingPosition.getColumn());
+    public boolean isDraw(piececolor currentTurnColor) {
+        return isStalemate(currentTurnColor)
+            || isInsufficientMaterial()
+            || isFiftyMoveRule()
+            || isThreefoldRepetition();
+    }
 
-        for(int rowOffset = -1; rowOffset <= 1; rowOffset++) { //check moves around king
-            for (int colOffset = -1; colOffset <=1; colOffset++) {
-                if (rowOffset == 0 && colOffset == 0) { //ignore current pos
-                    continue;
-                }
-                position newPosition = new position(kingPosition.getRow() + rowOffset, kingPosition.getColumn() + colOffset); //check if there are available positions
-                if (isPositionOnBoard(newPosition) && king.isValidMove(newPosition, board.getBoard()) && !wouldBeCheck(color, kingPosition, newPosition)) {
-                    return false; //move exists that escapes any check, not mate
-                }
-            }
-        }
+    public boolean isStalemate(piececolor color) {
+        return !isCheck(color) && !hasAnyLegalMoves(color);
+    }
 
-        for (int row = 0; row < board.getBoard().length; row++) { //check every space on board
-            for (int column = 0;  column < board.getBoard()[row].length; column++)  {
+    private boolean hasAnyLegalMoves(piececolor color) {
+        for (int row = 0; row < board.getBoard().length; row++) {
+            for (int column = 0; column < board.getBoard()[row].length; column++) {
                 Piece piece = board.getPiece(row, column);
-                if (piece != null && piece.getColor() == color 
-                 && !getLegalMovesForPieceAt(piece.getPosition()).isEmpty()) { //if friendly piece has a legal move that stops check
-                    return false; //move exists to block check
+                if (piece != null && piece.getColor() == color
+                        && !getLegalMovesForPieceAt(new position(row, column)).isEmpty()) {
+                    return true; // At least one legal move exists
+                }
+            }
+        }
+        return false; // No legal moves for any piece
+    }
+
+    public boolean isInsufficientMaterial() {
+        List<Piece> whiteMinors = new ArrayList<>(); //list of knights + bishops
+        List<Piece> blackMinors = new ArrayList<>();
+        int whiteBishopSquareColor = -1; //determine matching colors
+        int blackBishopSquareColor = -1;
+
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) { //check every square
+                Piece p = board.getPiece(row, col);
+                if (p == null || p instanceof king) continue; //ignore empty spaces or kings
+
+                
+                if (p instanceof pawn || p instanceof rook || p instanceof queen) { //pawns, rooks, queens are viable checkmates
+                    return false;
+                }
+
+                if (p.getColor() == piececolor.WHITE) { //if its a white bishop/knight
+                    whiteMinors.add(p);
+                    if (p instanceof bishop) whiteBishopSquareColor = (row + col) % 2; //for comparing square colors in event of bishop 1v1
+                } else { //if black piece
+                    blackMinors.add(p);
+                    if (p instanceof bishop) blackBishopSquareColor = (row + col) % 2;
                 }
             }
         }
 
-        return true; //no escape
+        
+        if (whiteMinors.size() <= 1 && blackMinors.isEmpty()) return true; //checking scenarios of king + 1 minor piece vs king or no other pieces
+        if (blackMinors.size() <= 1 && whiteMinors.isEmpty()) return true;
+
+        //king + bishop vs king + bishop
+        if (whiteMinors.size() == 1 && blackMinors.size() == 1 //same color bishops cant win
+                && whiteMinors.get(0) instanceof bishop
+                && blackMinors.get(0) instanceof bishop) {
+            return whiteBishopSquareColor == blackBishopSquareColor;
+        }
+
+        return false;
+    }
+
+    public boolean isFiftyMoveRule() {
+        return halfMoveClock >= 100;
+    }
+
+    public boolean isThreefoldRepetition() {
+        return positionHistory.getOrDefault(getPositionKey(), 0) >= 3;
+    }
+
+    private String getPositionKey() {
+        StringBuilder sb = new StringBuilder();
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                Piece p = board.getPiece(r, c);
+                if (p == null) {
+                    sb.append('.');
+                } else {
+                    char ch = p.getClass().getSimpleName().charAt(0);
+                    if (p instanceof knight) ch = 'n'; // avoid collision with 'k' (king)
+                    sb.append(p.getColor() == piececolor.WHITE ? Character.toUpperCase(ch) : ch);
+                }
+            }
+        }
+        sb.append(whiteTurn ? 'W' : 'B');
+        if (enPassPosition != null) {
+            sb.append(enPassPosition.getRow()).append(enPassPosition.getColumn());
+        }
+        return sb.toString();
     }
 
     private boolean wouldBeCheck(piececolor color, position currentPos, position newPosition) {
@@ -184,6 +261,9 @@ public class chessgame {
         this.board = new chessboard();
         this.whiteTurn = true;
         this.enPassPosition = null;
+        this.positionHistory.clear();
+        this.halfMoveClock = 0;
+
     }
 
     public piececolor getCurrentPlayerColor() {
