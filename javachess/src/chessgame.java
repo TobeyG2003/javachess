@@ -437,4 +437,33 @@ public class chessgame {
         }
     }
 
+    public boolean isPromotionMove(position pos) { //check if a pawn was moved to end
+        Piece p = board.getPiece(pos.getRow(), pos.getColumn());
+        if (p instanceof pawn) {
+            return (p.getColor() == piececolor.WHITE && pos.getRow() == 0) ||
+                (p.getColor() == piececolor.BLACK && pos.getRow() == 7);
+        }
+        return false;
+    }
+
+    public void promotePawn(position pos, String choice) { //change the pawn to a promoted piece
+        Piece p = board.getPiece(pos.getRow(), pos.getColumn());
+        if (p == null) return;
+
+        piececolor color = p.getColor();
+        Piece promotedPiece = switch (choice) {
+            case "Rook" -> new rook(color, pos);
+            case "Bishop" -> new bishop(color, pos);
+            case "Knight" -> new knight(color, pos);
+            default -> new queen(color, pos); //if closed 
+        };
+
+        //shouldn't matter but just in case
+        if (promotedPiece instanceof rook newRook) {
+            newRook.setMoved(true);
+        }
+
+        board.setPiece(pos.getRow(), pos.getColumn(), promotedPiece);
+    }
+
 }

@@ -74,6 +74,25 @@ public class chessgamegui extends JFrame {
         clearHighlights();
         if (moveResult) { //if move went through
             refreshBoard();
+            position endPos = new position(row, col);
+            if (game.isPromotionMove(endPos)) { //if moved to a promotion row with pawn
+                String[] options = {"Queen", "Rook", "Bishop", "Knight"};
+                int choiceIndex = JOptionPane.showOptionDialog(
+                    this,
+                    "Choose a piece for pawn promotion:",
+                    "Pawn Promotion",
+                    JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.PLAIN_MESSAGE,
+                    null,
+                    options,
+                    options[0]
+                );
+
+                String choice = (choiceIndex >= 0) ? options[choiceIndex] : "Queen"; //default option
+                game.promotePawn(endPos, choice); //promote to choice
+                refreshBoard(); // redraw with the newly promoted piece icon
+            }
+
             checkGameState();
             checkGameOver();
         } else if (game.isPieceSelected()) {
