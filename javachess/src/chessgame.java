@@ -127,14 +127,33 @@ public class chessgame {
     }
 
     private boolean wouldBeCheck(piececolor color, position currentPos, position newPosition) {
+        Piece movingPiece = board.getPiece(currentPos.getRow(), currentPos.getColumn());
         Piece temp = board.getPiece(newPosition.getRow(), newPosition.getColumn());
-        board.setPiece(newPosition.getRow(), newPosition.getColumn(), board.getPiece(currentPos.getRow(), currentPos.getColumn()));
+
+        // en passant check
+        Piece enPassCaptured = null;
+        boolean isEnPassant = movingPiece instanceof pawn
+         && currentPos.getColumn() != newPosition.getColumn()
+         && temp == null;
+
+        if (isEnPassant) {
+            enPassCaptured = board.getPiece(currentPos.getRow(), newPosition.getColumn());
+            board.setPiece(currentPos.getRow(), newPosition.getColumn(), null);
+        }
+
+        //simulate the move
+        board.setPiece(newPosition.getRow(), newPosition.getColumn(), movingPiece);
         board.setPiece(currentPos.getRow(), currentPos.getColumn(), null);
 
         boolean inCheck = isCheck(color);
 
-        board.setPiece(currentPos.getRow(), currentPos.getColumn(), board.getPiece(newPosition.getRow(), newPosition.getColumn()));
+        //undo the move
+        board.setPiece(currentPos.getRow(), currentPos.getColumn(), movingPiece);
         board.setPiece(newPosition.getRow(), newPosition.getColumn(), temp);
+
+        if (isEnPassant) {
+            board.setPiece(currentPos.getRow(), newPosition.getColumn(), enPassCaptured);
+        }
 
         return inCheck;
     }
@@ -218,7 +237,7 @@ public class chessgame {
                 addLineMoves(position, new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}, legalMoves);
                 break;
             case "king":
-                addSingleMoves(position, new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}, legalMoves);
+                addKingMoves(position, new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {-1, -1}, {1, -1}, {-1, 1}}, legalMoves);
                 break;
         }
       return legalMoves;
@@ -258,36 +277,84 @@ public class chessgame {
 
     }
 
+    private void addKingMoves(position position, int[][] moves, List<position> legalMoves) {
+        Piece kingPiece = board.getPiece(position.getRow(), position.getColumn());
+        piececolor color = kingPiece.getColor();
+
+        for (int[] move : moves) {
+            position newPos = new position(position.getRow() + move[0], position.getColumn() + move[1]);
+            if (isPositionOnBoard(newPos) && (board.getPiece(newPos.getRow(), newPos.getColumn()) == null || board.getPiece(newPos.getRow(), newPos.getColumn()).getColor()
+             != board.getPiece(position.getRow(), position.getColumn()).getColor())) { //if valid space and no/enemy piece
+                if (!wouldBeCheck((board.getPiece(position.getRow(), position.getColumn()).getColor()), position, newPos)) {
+                    legalMoves.add(newPos);
+                }   
+            }
+        }
+
+        if (!isCheck(color)) {
+        int row = position.getRow();
+        int col = position.getColumn();
+
+        // Check both kingside (+2) and queenside (-2)
+        int[] castleCols = {col + 2, col - 2};
+        for (int targetCol : castleCols) {
+            position castlePos = new position(row, targetCol);
+            if (isPositionOnBoard(castlePos) && kingPiece.isValidMove(castlePos, board.getBoard())) {
+                int step = (targetCol - col) / 2; // +1 kingside, -1 queenside
+                position passThrough = new position(row, col + step);
+
+                if (!wouldBeCheck(color, position, passThrough) && !wouldBeCheck(color, position, castlePos)) {
+                    legalMoves.add(castlePos);
+                }
+            }
+        }
+    }
+
+    }
+
     private void addPawnMoves(position position, piececolor color, List<position> legalMoves) {
         int direction = color == piececolor.WHITE ? -1 : 1;
         position newPos = new position(position.getRow() + direction, position.getColumn());
         if (isPositionOnBoard(newPos) && board.getPiece(newPos.getRow(), newPos.getColumn()) == null) { //normal single move
-            if (!wouldBeCheck((board.getPiece(position.getRow(), position.getColumn()).getColor()), position, newPos)) {
+            if (!wouldBeCheck(color, position, newPos)) {
                 legalMoves.add(newPos);
             }
         }
 
-        if ((color ==piececolor.WHITE && position.getRow() == 6) || (color == piececolor.BLACK && position.getRow() == 1)) { //check if on starting color's respective square 
+        if ((color == piececolor.WHITE && position.getRow() == 6) || (color == piececolor.BLACK && position.getRow() == 1)) { //check if on starting color's respective square 
             newPos = new position(position.getRow() + 2 * direction, position.getColumn());
             position intermediatePos = new position(position.getRow() + direction, position.getColumn());
             if (isPositionOnBoard(newPos) && board.getPiece(newPos.getRow(), newPos.getColumn()) == null
-             && board.getPiece(intermediatePos.getRow(), intermediatePos.getColumn()) == null) { //check if both squares in front are empty
-                if (!wouldBeCheck((board.getPiece(position.getRow(), position.getColumn()).getColor()), position, newPos)) {
+            && board.getPiece(intermediatePos.getRow(), intermediatePos.getColumn()) == null) { //check if both squares in front are empty
+                if (!wouldBeCheck(color, position, newPos)) {
                     legalMoves.add(newPos);
                 }
             }
         }
+
         int[] captureCols = {position.getColumn() - 1, position.getColumn() + 1}; //left and right column
         for (int col : captureCols) { //each column
             newPos = new position(position.getRow() + direction, col); //diagonal
-            if (isPositionOnBoard(newPos) && board.getPiece(newPos.getRow(), newPos.getColumn()) != null 
-             && board.getPiece(newPos.getRow(), newPos.getColumn()).getColor() != color) { //if enemy piece
-                if (!wouldBeCheck((board.getPiece(position.getRow(), position.getColumn()).getColor()), position, newPos)) {
+            if (!isPositionOnBoard(newPos)) {
+                continue;
+            }
+
+            Piece targetPiece = board.getPiece(newPos.getRow(), newPos.getColumn());
+            if (targetPiece != null && targetPiece.getColor() != color) { //normal diagonal capture
+                if (!wouldBeCheck(color, position, newPos)) {
                     legalMoves.add(newPos);
                 }
-             }
+            } else if (targetPiece == null && enPassPosition != null //en passant capture
+                    && position.getRow() == enPassPosition.getRow()
+                    && col == enPassPosition.getColumn()) {
+                Piece enPassPawn = board.getPiece(enPassPosition.getRow(), enPassPosition.getColumn());
+                if (enPassPawn instanceof pawn targetPawn && targetPawn.getColor() != color && targetPawn.isEnPassant()) {
+                    if (!wouldBeCheck(color, position, newPos)) {
+                        legalMoves.add(newPos);
+                    }
+                }
+            }
         }
-
     }
 
 }
