@@ -11,6 +11,10 @@ public class chessgame {
     private position selectedPosition;
     private position enPassPosition = null;
     private int halfMoveClock = 0;
+    private int score = 0;
+    private List<String> whiteCaptures = new ArrayList<>();
+    private List<String> blackCaptures = new ArrayList<>();
+    private List<String> moveHistory = new ArrayList<>();
     private Map<String, Integer> positionHistory = new HashMap<>();
 
     public chessgame() {
@@ -50,6 +54,10 @@ public class chessgame {
                 }
             }
 
+            boolean isCapture = board.getPiece(end.getRow(), end.getColumn()) != null
+             || (movingPiece instanceof pawn && start.getColumn() != end.getColumn());
+            String san = buildSanMove(movingPiece, start, end, isCapture);
+
             if (enPassPosition != null) { //enpass opportunity exists
                 if (movingPiece instanceof pawn && //moving piece is a pawn
                     (end.getRow() + (whiteTurn ? 1 : -1)) == enPassPosition.getRow() && //end row is above the enpass position
@@ -75,15 +83,25 @@ public class chessgame {
                 movedRook.setMoved(true);
             }
 
-            boolean isCapture = board.getPiece(end.getRow(), end.getColumn()) != null || (movingPiece instanceof pawn && start.getColumn() != end.getColumn());
-                if (movingPiece instanceof pawn || isCapture) {
-                    halfMoveClock = 0;
-                } else {
-                    halfMoveClock++;
-                }
+            if (movingPiece instanceof pawn || isCapture) {
+                halfMoveClock = 0;
+            } else {
+                halfMoveClock++;
+            }
 
             board.movePiece(start, end);
             whiteTurn = !whiteTurn;
+
+            if (!isPromotionMove(end)) {
+                piececolor opponentColor = getCurrentPlayerColor();
+                if (isCheckmate(opponentColor)) {
+                    san += "#";
+                } else if (isCheck(opponentColor)) {
+                    san += "+";
+                }
+            }
+            moveHistory.add(san);
+
             String key = getPositionKey();
             positionHistory.put(key, positionHistory.getOrDefault(key, 0) + 1);
             return true;
@@ -263,6 +281,7 @@ public class chessgame {
         this.enPassPosition = null;
         this.positionHistory.clear();
         this.halfMoveClock = 0;
+        this.moveHistory.clear();
 
     }
 
@@ -458,12 +477,99 @@ public class chessgame {
             default -> new queen(color, pos); //if closed 
         };
 
-        //shouldn't matter but just in case
+        //shouldn't matter, prevents castle flag
         if (promotedPiece instanceof rook newRook) {
             newRook.setMoved(true);
         }
 
         board.setPiece(pos.getRow(), pos.getColumn(), promotedPiece);
+
+        if (!moveHistory.isEmpty()) { //handle promotion syntax for history
+            String promoLetter = choice.equals("Knight") ? "N" : choice.substring(0, 1);
+            String updatedSan = moveHistory.get(moveHistory.size() - 1) + "=" + promoLetter;
+
+            piececolor opponentColor = getCurrentPlayerColor();
+            if (isCheckmate(opponentColor)) { //if promotion causes check/mate
+                updatedSan += "#";
+            } else if (isCheck(opponentColor)) {
+                updatedSan += "+";
+            }
+
+            moveHistory.set(moveHistory.size() - 1, updatedSan);
+        }
+    }
+
+    private String toAlgebraicSquare(position pos) {
+        char file = (char) ('a' + pos.getColumn());
+        int rank = 8 - pos.getRow();
+        return "" + file + rank;
+    }
+
+    private String getPieceSanLetter(Piece p) {
+        if (p instanceof knight) return "N";
+        if (p instanceof bishop) return "B";
+        if (p instanceof rook) return "R";
+        if (p instanceof queen) return "Q";
+        if (p instanceof king) return "K";
+        return ""; // Pawns have no prefix letter
+    }
+
+    //for writing move history with multiple pieces of the same type capable of the samem move
+    private String getDisambiguation(Piece movingPiece, position start, position end) {
+        if (movingPiece instanceof pawn || movingPiece instanceof king) return "";  //no issues
+
+        boolean sameFile = false;
+        boolean sameRank = false;
+        boolean conflict = false;
+
+        for (int row = 0; row < 8; row++) {
+            for (int column = 0; column < 8; column++) { //look across board
+                if (row == start.getRow() && column == start.getColumn()) continue; //ignore current space
+                Piece other = board.getPiece(row, column);
+                if (other != null
+                        && other.getColor() == movingPiece.getColor()
+                        && other.getClass() == movingPiece.getClass()) { //check if same team and piece type
+                    if (getLegalMovesForPieceAt(new position(row, column)).contains(end)) { //check if the other piece can move to the same spot
+                        conflict = true;
+                        if (column == start.getColumn()) sameFile = true; //marking for distinctive col or row
+                        if (row == start.getRow()) sameRank = true;
+                    }
+                }
+            }
+        }
+
+        if (!conflict) return ""; //no issues
+        char file = (char) ('a' + start.getColumn()); //get file and rank
+        int rank = 8 - start.getRow();
+        if (!sameFile) return "" + file; //return the appropriate distinction
+        if (!sameRank) return "" + rank;
+        return "" + file + rank;
+    }
+
+    private String buildSanMove(Piece movingPiece, position start, position end, boolean isCapture) { //build string for move history
+        if (movingPiece instanceof king && Math.abs(start.getColumn() - end.getColumn()) == 2) { ///for castling
+            return (end.getColumn() > start.getColumn()) ? "O-O" : "O-O-O";
+        }
+
+        String dest = toAlgebraicSquare(end);
+
+        if (movingPiece instanceof pawn) { //pawn moves dont need letters
+            if (isCapture) {
+                char startFile = (char) ('a' + start.getColumn());
+                return startFile + "x" + dest;
+            }
+            return dest;
+        }
+
+        //piece moves need letters
+        String pieceLetter = getPieceSanLetter(movingPiece);
+        String disambig = getDisambiguation(movingPiece, start, end);
+        String captureMark = isCapture ? "x" : "";
+        return pieceLetter + disambig + captureMark + dest;
+    }
+
+    public List<String> getMoveHistory() {
+        return moveHistory;
     }
 
 }

@@ -10,6 +10,7 @@ import pieces.*;
 public class chessgamegui extends JFrame {
     private final ChessSquareComponent[][] squares = new ChessSquareComponent[8][8];
     private final chessgame game = new chessgame();
+    private JTextArea moveHistoryArea;
 
     private final Map<Class<? extends Piece>, String> pieceUnicodeMap = new HashMap<>() { //map to assign classes an icon
         {
@@ -25,15 +26,29 @@ public class chessgamegui extends JFrame {
     public chessgamegui() {
         setTitle("Chess");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new GridLayout(8,8));
-        initializeBoard();
+        setLayout(new BorderLayout());
+
+        JPanel boardPanel = new JPanel(new GridLayout(8,8));
+        boardPanel.setPreferredSize(new Dimension(512,512));
+        initializeBoard(boardPanel);
+        add(boardPanel, BorderLayout.CENTER);
+
+        moveHistoryArea = new JTextArea(20,18);
+        moveHistoryArea.setEditable(false);
+        moveHistoryArea.setFont(new Font("Monospaced", Font.PLAIN,14));
+
+        JScrollPane scrollPane = new JScrollPane(moveHistoryArea);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Move History"));
+        scrollPane.setPreferredSize(new Dimension(200, 512));
+        add(scrollPane, BorderLayout.EAST);
+
         addGameResetOption();
         pack();
-        setMinimumSize(new Dimension(512, 560));
+        setMinimumSize(new Dimension(712, 560));
         setVisible(true);
     }
 
-    private void initializeBoard() {
+    private void initializeBoard(JPanel boardPanel) {
         for (int row = 0; row < squares.length; row++) {
             for (int col = 0; col < squares[row].length; col++) {
                 final int finalRow = row;
@@ -46,7 +61,7 @@ public class chessgamegui extends JFrame {
                     }
 
                 });
-                add(square);
+                boardPanel.add(square);
                 squares[row][col] = square;
             }
         }
@@ -92,6 +107,7 @@ public class chessgamegui extends JFrame {
                 game.promotePawn(endPos, choice); //promote to choice
                 refreshBoard(); // redraw with the newly promoted piece icon
             }
+            updateMoveHistory();
 
             checkGameState();
             checkGameOver();
@@ -106,7 +122,7 @@ public class chessgamegui extends JFrame {
         boolean inCheck = game.isCheck(currentPlayer);
 
         if (inCheck) {
-            JOptionPane.showMessageDialog(this, currentPlayer + "is in check");
+            JOptionPane.showMessageDialog(this, currentPlayer + " is in check");
         }
     }
 
@@ -137,6 +153,7 @@ public class chessgamegui extends JFrame {
 
     private void resetGame() {
         game.resetGame();
+        updateMoveHistory();
         refreshBoard();
     }
 
@@ -165,6 +182,19 @@ public class chessgamegui extends JFrame {
                 System.exit(0);
             }
         }
+    }
+
+    private void updateMoveHistory() {
+        List<String> moves = game.getMoveHistory();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < moves.size(); i += 2) {
+            int moveNumber = (i / 2) + 1;
+            String whiteMove = moves.get(i);
+            String blackMove = (i + 1 < moves.size()) ? moves.get(i + 1) : "";
+            sb.append(String.format("%2d. %-8s %s%n", moveNumber, whiteMove, blackMove));
+        }
+        moveHistoryArea.setText(sb.toString());
+        moveHistoryArea.setCaretPosition(moveHistoryArea.getDocument().getLength());
     }
 
     public static void main(String[] args) {

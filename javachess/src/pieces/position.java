@@ -1,4 +1,7 @@
 package pieces;
+
+import java.util.Objects;
+
 public class position {
     private int row;
     private int column;
@@ -14,5 +17,17 @@ public class position {
     
     public int getColumn() {
         return column;
+    }
+
+    @Override //checking equal positions
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof position other)) return false;
+        return this.row == other.row && this.column == other.column;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(row, column);
     }
 }
