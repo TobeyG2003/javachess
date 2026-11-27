@@ -11,6 +11,9 @@ public class chessgamegui extends JFrame {
     private final ChessSquareComponent[][] squares = new ChessSquareComponent[8][8];
     private final chessgame game = new chessgame();
     private JTextArea moveHistoryArea;
+    private JLabel turnLabel;
+    private JLabel whiteCapturesLabel;
+    private JLabel blackCapturesLabel;
 
     private final Map<Class<? extends Piece>, String> pieceUnicodeMap = new HashMap<>() { //map to assign classes an icon
         {
@@ -27,6 +30,24 @@ public class chessgamegui extends JFrame {
         setTitle("Chess");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
+
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+
+        turnLabel = new JLabel("Turn: White", SwingConstants.CENTER);
+        turnLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+
+        whiteCapturesLabel = new JLabel("White captures: ");
+        blackCapturesLabel = new JLabel("Black captures: ");
+
+        JPanel capturesPanel = new JPanel(new GridLayout(2, 1));
+        capturesPanel.add(whiteCapturesLabel);
+        capturesPanel.add(blackCapturesLabel);
+
+        topBar.add(turnLabel, BorderLayout.WEST);
+        topBar.add(capturesPanel, BorderLayout.EAST);
+
+        add(topBar, BorderLayout.NORTH);
 
         JPanel boardPanel = new JPanel(new GridLayout(8,8));
         boardPanel.setPreferredSize(new Dimension(512,512));
@@ -108,7 +129,7 @@ public class chessgamegui extends JFrame {
                 refreshBoard(); // redraw with the newly promoted piece icon
             }
             updateMoveHistory();
-
+            updateStatusBar();
             checkGameState();
             checkGameOver();
         } else if (game.isPieceSelected()) {
@@ -153,7 +174,9 @@ public class chessgamegui extends JFrame {
 
     private void resetGame() {
         game.resetGame();
+        clearHighlights();
         updateMoveHistory();
+        updateStatusBar();
         refreshBoard();
     }
 
@@ -195,6 +218,29 @@ public class chessgamegui extends JFrame {
         }
         moveHistoryArea.setText(sb.toString());
         moveHistoryArea.setCaretPosition(moveHistoryArea.getDocument().getLength());
+    }
+
+    private void updateStatusBar() {
+        String currentTurn = (game.getCurrentPlayerColor() == piececolor.WHITE) ? "White" : "Black"; //updating turn
+        turnLabel.setText("Turn: " + currentTurn);
+
+        //list of icons form captured pieces
+        StringBuilder whiteIcons = new StringBuilder();
+        for (Piece p : game.getWhiteCapturedPieces()) {
+            whiteIcons.append(pieceUnicodeMap.get(p.getClass()));
+        }
+        StringBuilder blackIcons = new StringBuilder();
+        for (Piece p : game.getBlackCapturedPieces()) {
+            blackIcons.append(pieceUnicodeMap.get(p.getClass()));
+        }
+
+        //material advantage
+        int advantage = game.getMaterialAdvantage();
+        String whiteAdvText = (advantage > 0) ? " (+" + advantage + ")" : "";
+        String blackAdvText = (advantage < 0) ? " (+" + Math.abs(advantage) + ")" : "";
+
+        whiteCapturesLabel.setText("White: " + whiteIcons + whiteAdvText);
+        blackCapturesLabel.setText("Black: " + blackIcons + blackAdvText);
     }
 
     public static void main(String[] args) {

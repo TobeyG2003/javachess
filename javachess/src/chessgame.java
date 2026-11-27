@@ -12,8 +12,8 @@ public class chessgame {
     private position enPassPosition = null;
     private int halfMoveClock = 0;
     private int score = 0;
-    private List<String> whiteCaptures = new ArrayList<>();
-    private List<String> blackCaptures = new ArrayList<>();
+    private List<Piece> whiteCapturedPieces = new ArrayList<>();
+    private List<Piece> blackCapturedPieces = new ArrayList<>();
     private List<String> moveHistory = new ArrayList<>();
     private Map<String, Integer> positionHistory = new HashMap<>();
 
@@ -61,8 +61,15 @@ public class chessgame {
             if (enPassPosition != null) { //enpass opportunity exists
                 if (movingPiece instanceof pawn && //moving piece is a pawn
                     (end.getRow() + (whiteTurn ? 1 : -1)) == enPassPosition.getRow() && //end row is above the enpass position
-                    end.getColumn() == enPassPosition.getColumn()) {  //same column though
+                    end.getColumn() == enPassPosition.getColumn()) {
+                    Piece enPassPawn = board.getPiece(enPassPosition.getRow(), enPassPosition.getColumn());
+                    if (whiteTurn) {
+                        whiteCapturedPieces.add(enPassPawn);
+                    } else {
+                        blackCapturedPieces.add(enPassPawn);
+                    }  //same column though
                     board.setPiece(enPassPosition.getRow(), enPassPosition.getColumn(), null); //remove/capture piece
+                    isCapture = false;
                 }
                 if (board.getPiece(enPassPosition.getRow(), enPassPosition.getColumn()) instanceof pawn oldPawn) { //if the pawn didnt get captured this move
                     oldPawn.setEnPassant(false); //disallow enpass
@@ -87,6 +94,14 @@ public class chessgame {
                 halfMoveClock = 0;
             } else {
                 halfMoveClock++;
+            }
+
+            if (isCapture) {
+                if (whiteTurn) {
+                    whiteCapturedPieces.add(board.getPiece(end.getRow(), end.getColumn()));
+                } else {
+                    blackCapturedPieces.add(board.getPiece(end.getRow(), end.getColumn()));
+                }
             }
 
             board.movePiece(start, end);
@@ -282,7 +297,8 @@ public class chessgame {
         this.positionHistory.clear();
         this.halfMoveClock = 0;
         this.moveHistory.clear();
-
+        this.whiteCapturedPieces.clear();
+        this.blackCapturedPieces.clear();
     }
 
     public piececolor getCurrentPlayerColor() {
@@ -570,6 +586,42 @@ public class chessgame {
 
     public List<String> getMoveHistory() {
         return moveHistory;
+    }
+
+    public List<Piece> getWhiteCapturedPieces() {
+        return whiteCapturedPieces;
+    }
+
+    public List<Piece> getBlackCapturedPieces() {
+        return blackCapturedPieces;
+    }
+
+    public int getPieceValue(Piece p) {
+        if (p instanceof pawn) return 1;
+        if (p instanceof knight || p instanceof bishop) return 3;
+        if (p instanceof rook) return 5;
+        if (p instanceof queen) return 9;
+        return 0;
+    }
+
+    public int getMaterialAdvantage() {
+        int whiteOnBoard = 0;
+        int blackOnBoard = 0;
+
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Piece p = board.getPiece(row, col);
+                if (p == null) continue;
+
+                if (p.getColor() == piececolor.WHITE) {
+                    whiteOnBoard += getPieceValue(p);
+                } else {
+                    blackOnBoard += getPieceValue(p);
+                }
+            }
+        }
+
+        return whiteOnBoard - blackOnBoard;
     }
 
 }
