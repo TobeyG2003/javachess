@@ -14,6 +14,12 @@ public class chessgamegui extends JFrame {
     private JLabel turnLabel;
     private JLabel whiteCapturesLabel;
     private JLabel blackCapturesLabel;
+    private CardLayout cardLayout;
+    private JPanel mainContainer;
+    private JComboBox<String> colorBox;
+    private JComboBox<String> opponentBox;
+    private boolean playAsBlack = false;
+    private boolean vsAi = false;
 
     private final Map<Class<? extends Piece>, String> pieceUnicodeMap = new HashMap<>() { //map to assign classes an icon
         {
@@ -29,41 +35,21 @@ public class chessgamegui extends JFrame {
     public chessgamegui() {
         setTitle("Chess");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout());
 
-        JPanel topBar = new JPanel(new BorderLayout());
-        topBar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        cardLayout = new CardLayout();
+        mainContainer = new JPanel(cardLayout);
 
-        turnLabel = new JLabel("Turn: White", SwingConstants.CENTER);
-        turnLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        JPanel startMenuPanel = createStartMenuPanel();
+        mainContainer.add(startMenuPanel, "MENU");
 
-        whiteCapturesLabel = new JLabel("White captures: ");
-        blackCapturesLabel = new JLabel("Black captures: ");
+        JPanel gameScreenPanel = createGameScreenPanel();
+        mainContainer.add(gameScreenPanel, "GAME");
 
-        JPanel capturesPanel = new JPanel(new GridLayout(2, 1));
-        capturesPanel.add(whiteCapturesLabel);
-        capturesPanel.add(blackCapturesLabel);
-
-        topBar.add(turnLabel, BorderLayout.WEST);
-        topBar.add(capturesPanel, BorderLayout.EAST);
-
-        add(topBar, BorderLayout.NORTH);
-
-        JPanel boardPanel = new JPanel(new GridLayout(8,8));
-        boardPanel.setPreferredSize(new Dimension(512,512));
-        initializeBoard(boardPanel);
-        add(boardPanel, BorderLayout.CENTER);
-
-        moveHistoryArea = new JTextArea(20,18);
-        moveHistoryArea.setEditable(false);
-        moveHistoryArea.setFont(new Font("Monospaced", Font.PLAIN,14));
-
-        JScrollPane scrollPane = new JScrollPane(moveHistoryArea);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("Move History"));
-        scrollPane.setPreferredSize(new Dimension(200, 512));
-        add(scrollPane, BorderLayout.EAST);
-
+        add(mainContainer);
         addGameResetOption();
+
+        cardLayout.show(mainContainer, "MENU"); //show main menu first
+
         pack();
         setMinimumSize(new Dimension(712, 560));
         setVisible(true);
@@ -78,7 +64,7 @@ public class chessgamegui extends JFrame {
                 square.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        handleSquareClick(finalRow, finalCol);
+                        handleSquareClick(toBoardCoord(finalRow), toBoardCoord(finalCol));
                     }
 
                 });
@@ -93,7 +79,7 @@ public class chessgamegui extends JFrame {
         chessboard board = game.getBoard();
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
-                Piece piece = board.getPiece(row, col);
+                Piece piece = board.getPiece(toBoardCoord(row), toBoardCoord(col));
                 if (piece != null) {
                     String symbol = pieceUnicodeMap.get(piece.getClass());
                     Color color = (piece.getColor() == piececolor.WHITE) ? Color.WHITE : Color.BLACK;
@@ -150,7 +136,7 @@ public class chessgamegui extends JFrame {
     private void highlightLegalMoves(position position) {
         List<position> legalMoves = game.getLegalMovesForPieceAt(position);
         for (position move : legalMoves) {
-            squares[move.getRow()][move.getColumn()].setBackground(Color.GREEN);
+            squares[toBoardCoord(move.getRow())][toBoardCoord(move.getColumn())].setBackground(Color.GREEN);
         }
     }
 
@@ -165,11 +151,23 @@ public class chessgamegui extends JFrame {
     private void addGameResetOption() {
         JMenuBar menuBar = new JMenuBar();
         JMenu gameMenu = new JMenu("Game");
-        JMenuItem resetItem  = new JMenuItem("Reset");
-        resetItem.addActionListener(e -> resetGame());
-        gameMenu.add(resetItem);
+
+        JMenuItem quickResetItem = new JMenuItem("Restart Match");
+        quickResetItem.addActionListener(e -> startNewGameFromMenu()); // restarts with same settings
+
+        JMenuItem menuItem = new JMenuItem("Main Menu");
+        menuItem.addActionListener(e -> returnToStartMenu()); // goes back to color/AI selection
+
+        gameMenu.add(quickResetItem);
+        gameMenu.add(menuItem);
         menuBar.add(gameMenu);
         setJMenuBar(menuBar);
+    }
+
+    private void returnToStartMenu() {
+        game.resetGame();
+        clearHighlights();
+        cardLayout.show(mainContainer, "MENU");
     }
 
     private void resetGame() {
@@ -200,7 +198,7 @@ public class chessgamegui extends JFrame {
         if (message != null) {
             int response = JOptionPane.showConfirmDialog(this, message, "Game Over", JOptionPane.YES_NO_OPTION);
             if (response == JOptionPane.YES_OPTION) {
-                resetGame();
+                returnToStartMenu();
             } else {
                 System.exit(0);
             }
@@ -241,6 +239,100 @@ public class chessgamegui extends JFrame {
 
         whiteCapturesLabel.setText("White: " + whiteIcons + whiteAdvText);
         blackCapturesLabel.setText("Black: " + blackIcons + blackAdvText);
+    }
+
+    private int toBoardCoord(int uiIndex) {
+        return playAsBlack ? 7 - uiIndex : uiIndex;
+    }
+
+    private JPanel createStartMenuPanel() {
+        JPanel menuPanel = new JPanel(new GridBagLayout());
+        menuPanel.setBackground(new Color(45, 60, 115));
+
+        JPanel cardBox = new JPanel(new GridLayout(4, 1, 12, 12));
+        cardBox.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
+        cardBox.setBackground(new Color(227, 217, 207));
+
+        JLabel titleLabel = new JLabel("CHESS", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 28));
+
+        JPanel colorRow = new JPanel(new GridLayout(1, 2, 10, 0));
+        colorRow.setOpaque(false);
+        colorRow.add(new JLabel("Play as:"));
+        colorBox = new JComboBox<>(new String[]{"White", "Black"});
+        colorRow.add(colorBox);
+
+        JPanel opponentRow = new JPanel(new GridLayout(1, 2, 10, 0));
+        opponentRow.setOpaque(false);
+        opponentRow.add(new JLabel("Opponent:"));
+        opponentBox = new JComboBox<>(new String[]{"2 Players (Local)", "vs. Computer (AI)"});
+        opponentRow.add(opponentBox);
+
+        JButton startButton = new JButton("Start Game");
+        startButton.setFont(new Font("SansSerif", Font.BOLD, 16));
+        startButton.addActionListener(e -> startNewGameFromMenu());
+
+        cardBox.add(titleLabel);
+        cardBox.add(colorRow);
+        cardBox.add(opponentRow);
+        cardBox.add(startButton);
+
+        menuPanel.add(cardBox);
+        return menuPanel;
+    }
+
+    private JPanel createGameScreenPanel() {
+        JPanel gamePanel = new JPanel(new BorderLayout());
+
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+
+        turnLabel = new JLabel("Turn: White", SwingConstants.CENTER);
+        turnLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+
+        whiteCapturesLabel = new JLabel("White captures: ");
+        blackCapturesLabel = new JLabel("Black captures: ");
+
+        JPanel capturesPanel = new JPanel(new GridLayout(2, 1));
+        capturesPanel.add(whiteCapturesLabel);
+        capturesPanel.add(blackCapturesLabel);
+
+        topBar.add(turnLabel, BorderLayout.WEST);
+        topBar.add(capturesPanel, BorderLayout.EAST);
+        gamePanel.add(topBar, BorderLayout.NORTH);
+
+        JPanel boardPanel = new JPanel(new GridLayout(8, 8));
+        boardPanel.setPreferredSize(new Dimension(512, 512));
+        initializeBoard(boardPanel);
+        gamePanel.add(boardPanel, BorderLayout.CENTER);
+
+        moveHistoryArea = new JTextArea(20, 18);
+        moveHistoryArea.setEditable(false);
+        moveHistoryArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+
+        JScrollPane scrollPane = new JScrollPane(moveHistoryArea);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Move History"));
+        scrollPane.setPreferredSize(new Dimension(200, 512));
+        gamePanel.add(scrollPane, BorderLayout.EAST);
+
+        return gamePanel;
+    }
+
+    private void startNewGameFromMenu() {
+        playAsBlack = colorBox.getSelectedIndex() == 1;
+        vsAi = opponentBox.getSelectedIndex() == 1;
+
+        game.resetGame();
+        clearHighlights();
+        updateMoveHistory();
+        updateStatusBar();
+        refreshBoard();
+
+        cardLayout.show(mainContainer, "GAME"); //move to game screen
+
+        if (vsAi && playAsBlack) { //start an ai move first if ai is white
+            //triggerAIMove();
+        }
     }
 
     public static void main(String[] args) {
